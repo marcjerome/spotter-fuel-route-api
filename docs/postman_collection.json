@@ -1,0 +1,1025 @@
+{
+  "info": {
+    "name": "Fuel Route Planner",
+    "description": "Demo collection for the Fuel Route Planner API. Run the folders in order; see docs/DEMO.md.\n\nReset first: `docker compose exec web python manage.py demo_reset`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "mapUrl",
+      "value": ""
+    },
+    {
+      "key": "jobUrl",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. One API call",
+      "item": [
+        {
+          "name": "Routing stats (before)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stats/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stats",
+                ""
+              ]
+            },
+            "description": "All counters should be 0 after demo_reset."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const s = pm.response.json(); console.log(`routing API calls so far: ${s.routing_api_calls}, cache: ${s.cache_backend}`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Plan NY -> LA (new route: 1 OSRM call)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "First request for this trip: meta.routing_api_calls = 1, routing_cache_hit = false.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Plan NY -> LA again (cached: 0 OSRM calls)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "Same trip: served from the Redis route cache in milliseconds.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);",
+                  "pm.test(\"served from cache\", () => pm.expect(pm.response.json().meta.routing_api_calls).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Open the map (paste mapUrl in a browser)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/map/?start=New York, NY&finish=Los Angeles, CA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                "map",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "New York, NY"
+                },
+                {
+                  "key": "finish",
+                  "value": "Los Angeles, CA"
+                }
+              ]
+            },
+            "description": "HTML map with the route and numbered fuel stops. Easier to open {{mapUrl}} in a browser tab."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Many synchronous calls (Collection Runner)",
+      "description": "Run this folder with the Collection Runner, e.g. 5 iterations = 35 requests. Only the first iteration calls OSRM (7 calls); the rest are cache hits.",
+      "item": [
+        {
+          "name": "New York, NY -> Los Angeles, CA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seattle, WA -> Miami, FL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Seattle, WA\",\n  \"finish\": \"Miami, FL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chicago, IL -> Houston, TX",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Houston, TX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dallas, TX -> Chicago, IL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Dallas, TX\",\n  \"finish\": \"Chicago, IL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Denver, CO -> Atlanta, GA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Denver, CO\",\n  \"finish\": \"Atlanta, GA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Boston, MA -> Washington, DC",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Boston, MA\",\n  \"finish\": \"Washington, DC\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Phoenix, AZ -> Kansas City, MO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Phoenix, AZ\",\n  \"finish\": \"Kansas City, MO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Routing stats (after the batch)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stats/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stats",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const s = pm.response.json(); console.log(`${s.route_lookups} route lookups -> ${s.routing_api_calls} OSRM calls, hit rate ${s.cache_hit_rate}`);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Algorithms",
+      "item": [
+        {
+          "name": "NY -> LA with naive (baseline)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\",\n  \"strategy\": \"naive\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NY -> LA with greedy (default)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\",\n  \"strategy\": \"greedy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NY -> LA with lp (HiGHS, same optimum)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\",\n  \"strategy\": \"lp\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NY -> LA with milp ($10 per stop: fewer stops)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\",\n  \"strategy\": \"milp\",\n  \"stop_penalty\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Half tank, coordinates as input",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"32.7767,-96.7970\",\n  \"finish\": \"Chicago, IL\",\n  \"start_fuel_gallons\": 25\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set(\"mapUrl\", d.map_url);",
+                  "console.log(`${d.start.label} -> ${d.finish.label} [${d.strategy}]: $${d.summary.total_fuel_cost}, ${d.summary.number_of_stops} stops, routing API calls: ${d.meta.routing_api_calls}, ${pm.response.responseTime} ms`);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Background job (Celery)",
+      "item": [
+        {
+          "name": "Submit milp as a background job (202)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Seattle, WA\",\n  \"finish\": \"Miami, FL\",\n  \"strategy\": \"milp\",\n  \"stop_penalty\": 10,\n  \"mode\": \"async\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"accepted\", () => pm.expect(pm.response.code).to.be.oneOf([200, 202]));",
+                  "pm.collectionVariables.set(\"jobUrl\", pm.response.json().status_url);",
+                  "console.log(\"job:\", pm.response.json().status_url, pm.response.json().status);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Poll the job",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{jobUrl}}",
+              "host": [
+                "{{jobUrl}}"
+              ]
+            },
+            "description": "Send until status is 'succeeded'; result has the same body as a synchronous plan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "console.log(`status: ${j.status}` + (j.result ? `, $${j.result.summary.total_fuel_cost}, ${j.result.summary.number_of_stops} stops` : ''));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Errors",
+      "item": [
+        {
+          "name": "Unknown city (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Atlantis, ZZ\",\n  \"finish\": \"Chicago, IL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Outside the USA (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"48.8566,2.3522\",\n  \"finish\": \"Chicago, IL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "No feasible plan: LA on an empty tank (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route-plan/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "route-plan",
+                ""
+              ]
+            },
+            "description": "The price sheet has only 8 California stations, all near the Mexican border.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"Los Angeles, CA\",\n  \"finish\": \"New York, NY\",\n  \"start_fuel_gallons\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Stations",
+      "item": [
+        {
+          "name": "Cheapest stations in Texas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stations/?state=TX&ordering=price",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stations",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "TX"
+                },
+                {
+                  "key": "ordering",
+                  "value": "price"
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    }
+  ]
+}

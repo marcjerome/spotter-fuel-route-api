@@ -1,0 +1,64 @@
+x-app: &app
+  image: fuel-route-planner:latest
+  environment: &app-env
+    DATABASE_URL: postgres://fuel_planner:fuel_planner@db:5432/fuel_planner
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_DEBUG: "false"
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fuel_planner
+      POSTGRES_USER: fuel_planner
+      POSTGRES_PASSWORD: fuel_planner
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fuel_planner -d fuel_planner"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # API: answers fast requests directly and queues heavy ones.
+  web:
+    <<: *app
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *app-env
+      RUN_MIGRATIONS: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/schema/')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Background planner: MILP solves (cpu queue) and uncached routes (io queue).
+  # Scale with: docker compose up --scale worker=3
+  worker:
+    <<: *app
+    pull_policy: never  # uses the image built for web
+    command: ["celery", "-A", "config", "worker", "-Q", "io,cpu", "--concurrency", "4", "--loglevel", "info"]
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

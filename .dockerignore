@@ -1,0 +1,10 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+db.sqlite3
+staticfiles
+.env
+docs/*.csv
+.playwright-mcp

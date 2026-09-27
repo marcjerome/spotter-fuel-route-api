@@ -1,0 +1,76 @@
+route,distance_miles,candidates,start_fuel_gallons,variant,cost,saving_vs_naive_pct,gap_to_optimum_pct,stops,median_ms
+"New York, NY -> Los Angeles, CA",2810.4,223,0.0,naive,929.49,0.0,9.017,6,0.215
+"New York, NY -> Los Angeles, CA",2810.4,223,0.0,greedy,852.61,8.27,0.0,20,0.226
+"New York, NY -> Los Angeles, CA",2810.4,223,0.0,lp,852.61,8.27,0.0,20,33.074
+"New York, NY -> Los Angeles, CA",2810.4,223,0.0,milp $10/stop,865.7,6.86,1.535,7,1027.512
+"New York, NY -> Los Angeles, CA",2810.4,223,0.0,milp $50/stop,916.38,1.41,7.479,6,2015.251
+"New York, NY -> Los Angeles, CA",2810.4,223,50.0,naive,766.54,0.0,9.727,5,0.255
+"New York, NY -> Los Angeles, CA",2810.4,223,50.0,greedy,698.59,8.86,0.0,17,0.27
+"New York, NY -> Los Angeles, CA",2810.4,223,50.0,lp,698.59,8.86,0.0,17,43.59
+"New York, NY -> Los Angeles, CA",2810.4,223,50.0,milp $10/stop,705.62,7.95,1.007,6,866.814
+"New York, NY -> Los Angeles, CA",2810.4,223,50.0,milp $50/stop,711.55,7.17,1.855,6,2016.5
+"Seattle, WA -> Miami, FL",3303.0,176,0.0,naive,1101.41,0.0,7.255,7,0.144
+"Seattle, WA -> Miami, FL",3303.0,176,0.0,greedy,1026.91,6.76,0.0,21,0.214
+"Seattle, WA -> Miami, FL",3303.0,176,0.0,lp,1026.91,6.76,0.0,22,18.787
+"Seattle, WA -> Miami, FL",3303.0,176,0.0,milp $10/stop,1042.88,5.31,1.555,8,1914.301
+"Seattle, WA -> Miami, FL",3303.0,176,0.0,milp $50/stop,1043.93,5.22,1.658,8,2011.444
+"Seattle, WA -> Miami, FL",3303.0,176,50.0,naive,911.46,0.0,7.382,6,0.168
+"Seattle, WA -> Miami, FL",3303.0,176,50.0,greedy,848.81,6.87,0.0,19,0.246
+"Seattle, WA -> Miami, FL",3303.0,176,50.0,lp,848.81,6.87,0.0,19,25.869
+"Seattle, WA -> Miami, FL",3303.0,176,50.0,milp $10/stop,861.23,5.51,1.464,7,1313.339
+"Seattle, WA -> Miami, FL",3303.0,176,50.0,milp $50/stop,866.07,4.98,2.034,7,2010.826
+"Chicago, IL -> Houston, TX",1083.1,81,0.0,naive,368.06,0.0,15.692,3,0.086
+"Chicago, IL -> Houston, TX",1083.1,81,0.0,greedy,318.14,13.56,0.0,10,0.061
+"Chicago, IL -> Houston, TX",1083.1,81,0.0,lp,318.14,13.56,0.0,10,8.067
+"Chicago, IL -> Houston, TX",1083.1,81,0.0,milp $10/stop,329.84,10.39,3.677,3,480.569
+"Chicago, IL -> Houston, TX",1083.1,81,0.0,milp $50/stop,329.84,10.39,3.677,3,869.368
+"Chicago, IL -> Houston, TX",1083.1,81,50.0,naive,173.11,0.0,3.146,2,0.085
+"Chicago, IL -> Houston, TX",1083.1,81,50.0,greedy,167.83,3.05,0.0,5,0.06
+"Chicago, IL -> Houston, TX",1083.1,81,50.0,lp,167.83,3.05,0.0,5,6.847
+"Chicago, IL -> Houston, TX",1083.1,81,50.0,milp $10/stop,168.68,2.56,0.504,2,53.088
+"Chicago, IL -> Houston, TX",1083.1,81,50.0,milp $50/stop,168.68,2.56,0.504,2,281.179
+"Dallas, TX -> Chicago, IL",961.0,84,0.0,naive,286.55,0.0,4.842,2,0.052
+"Dallas, TX -> Chicago, IL",961.0,84,0.0,greedy,273.31,4.62,0.0,6,0.108
+"Dallas, TX -> Chicago, IL",961.0,84,0.0,lp,273.31,4.62,0.0,6,7.499
+"Dallas, TX -> Chicago, IL",961.0,84,0.0,milp $10/stop,281.46,1.77,2.982,2,82.718
+"Dallas, TX -> Chicago, IL",961.0,84,0.0,milp $50/stop,281.46,1.77,2.982,2,25.561
+"Dallas, TX -> Chicago, IL",961.0,84,50.0,naive,138.26,0.0,3.889,1,0.058
+"Dallas, TX -> Chicago, IL",961.0,84,50.0,greedy,133.09,3.74,0.0,4,0.107
+"Dallas, TX -> Chicago, IL",961.0,84,50.0,lp,133.09,3.74,0.0,4,7.047
+"Dallas, TX -> Chicago, IL",961.0,84,50.0,milp $10/stop,138.26,-0.0,3.889,1,29.167
+"Dallas, TX -> Chicago, IL",961.0,84,50.0,milp $50/stop,138.26,-0.0,3.889,1,25.125
+"Denver, CO -> Atlanta, GA",1393.9,93,0.0,naive,449.07,0.0,8.827,3,0.071
+"Denver, CO -> Atlanta, GA",1393.9,93,0.0,greedy,412.65,8.11,0.0,13,0.068
+"Denver, CO -> Atlanta, GA",1393.9,93,0.0,lp,412.65,8.11,0.0,14,7.612
+"Denver, CO -> Atlanta, GA",1393.9,93,0.0,milp $10/stop,419.74,6.53,1.718,4,379.457
+"Denver, CO -> Atlanta, GA",1393.9,93,0.0,milp $50/stop,433.56,3.45,5.068,3,92.291
+"Denver, CO -> Atlanta, GA",1393.9,93,50.0,naive,280.29,0.0,8.039,2,0.072
+"Denver, CO -> Atlanta, GA",1393.9,93,50.0,greedy,259.43,7.44,0.0,7,0.069
+"Denver, CO -> Atlanta, GA",1393.9,93,50.0,lp,259.43,7.44,0.0,8,9.896
+"Denver, CO -> Atlanta, GA",1393.9,93,50.0,milp $10/stop,259.95,7.26,0.198,3,443.063
+"Denver, CO -> Atlanta, GA",1393.9,93,50.0,milp $50/stop,271.75,3.05,4.746,2,100.736
+"San Francisco, CA -> Salt Lake City, UT",761.9,16,50.0,naive,87.46,0.0,-0.0,1,0.028
+"San Francisco, CA -> Salt Lake City, UT",761.9,16,50.0,greedy,87.46,0.0,-0.0,1,0.03
+"San Francisco, CA -> Salt Lake City, UT",761.9,16,50.0,lp,87.46,-0.0,0.0,1,2.814
+"San Francisco, CA -> Salt Lake City, UT",761.9,16,50.0,milp $10/stop,87.46,-0.0,0.0,1,6.237
+"San Francisco, CA -> Salt Lake City, UT",761.9,16,50.0,milp $50/stop,87.46,-0.0,0.0,1,18.95
+"Boston, MA -> Washington, DC",439.2,85,0.0,naive,188.83,0.0,28.471,1,0.025
+"Boston, MA -> Washington, DC",439.2,85,0.0,greedy,146.98,22.16,0.0,8,0.101
+"Boston, MA -> Washington, DC",439.2,85,0.0,lp,146.98,22.16,0.0,9,7.155
+"Boston, MA -> Washington, DC",439.2,85,0.0,milp $10/stop,149.74,20.7,1.872,3,394.131
+"Boston, MA -> Washington, DC",439.2,85,0.0,milp $50/stop,188.83,-0.0,28.471,1,21.475
+"Boston, MA -> Washington, DC",439.2,85,50.0,naive,0.0,0.0,0.0,0,0.023
+"Boston, MA -> Washington, DC",439.2,85,50.0,greedy,0.0,0.0,0.0,0,0.012
+"Boston, MA -> Washington, DC",439.2,85,50.0,lp,0.0,0.0,0.0,0,0.019
+"Boston, MA -> Washington, DC",439.2,85,50.0,milp $10/stop,0.0,0.0,0.0,0,0.021
+"Boston, MA -> Washington, DC",439.2,85,50.0,milp $50/stop,0.0,0.0,0.0,0,0.012
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,0.0,naive,448.05,0.0,23.367,3,0.045
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,0.0,greedy,363.19,18.94,0.0,5,0.052
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,0.0,lp,363.19,18.94,0.0,5,3.784
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,0.0,milp $10/stop,371.4,17.11,2.26,3,109.065
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,0.0,milp $50/stop,371.4,17.11,2.26,3,159.422
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,50.0,naive,246.85,0.0,13.72,2,0.043
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,50.0,greedy,217.07,12.06,-0.0,4,0.05
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,50.0,lp,217.07,12.06,0.0,4,4.323
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,50.0,milp $10/stop,225.28,8.74,3.781,2,92.068
+"Phoenix, AZ -> Kansas City, MO",1248.1,38,50.0,milp $50/stop,225.28,8.74,3.781,2,129.761

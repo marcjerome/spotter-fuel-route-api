@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if refresh %}Planning route{% else %}Route unavailable{% endif %}</title>
+  {% if refresh %}<meta http-equiv="refresh" content="2">{% endif %}
+  <style>body { font: 15px/1.5 system-ui, sans-serif; max-width: 560px; margin: 15vh auto; padding: 0 16px; color: #1c2430; }</style>
+</head>
+<body>
+  <h1>{% if refresh %}Planning route{% else %}Route unavailable{% endif %}</h1>
+  <p>{{ detail }}</p>
+</body>
+</html>

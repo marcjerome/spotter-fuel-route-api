@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ plan.start.label }} → {{ plan.finish.label }} · Fuel Route</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛽</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <style>
+    :root { --ink: #1c2430; --muted: #5d6b7a; --line: #e3e7ec; --accent: #2563eb; --stop: #e8590c; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); display: flex; height: 100vh; }
+    aside { width: 380px; overflow-y: auto; border-right: 1px solid var(--line); padding: 20px; background: #fff; }
+    #map { flex: 1; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin-bottom: 16px; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .stat { border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+    .stat b { display: block; font-size: 18px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .savings { background: #ecfdf3; border: 1px solid #b7ebc9; color: #14532d; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; display: grid; gap: 4px; }
+    ol { list-style: none; padding: 0; margin: 0; }
+    li { border-top: 1px solid var(--line); padding: 10px 0; cursor: pointer; }
+    li:hover { background: #f6f8fa; }
+    .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--stop); color: #fff; font-size: 12px; font-weight: 600; margin-right: 6px; }
+    .meta { color: var(--muted); font-size: 12px; margin-left: 28px; }
+    .marker { background: var(--stop); color: #fff; border: 2px solid #fff; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+    @media (max-width: 760px) { body { flex-direction: column; } aside { width: 100%; height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); } }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>{{ plan.start.label }} → {{ plan.finish.label }}</h1>
+    <div class="sub">{{ plan.route.distance_miles }} mi · {{ plan.route.duration_hours }} h driving · strategy: <b>{{ plan.strategy }}</b></div>
+    <div class="stats">
+      <div class="stat"><b>${{ plan.summary.total_fuel_cost|floatformat:2 }}</b><span>total fuel cost</span></div>
+      <div class="stat"><b>{{ plan.summary.number_of_stops }}</b><span>fuel stops</span></div>
+      <div class="stat"><b>{{ plan.summary.total_gallons_purchased }} gal</b><span>purchased</span></div>
+      <div class="stat"><b>{% if plan.summary.average_price_per_gallon %}${{ plan.summary.average_price_per_gallon|floatformat:3 }}{% else %}–{% endif %}</b><span>avg price / gal</span></div>
+    </div>
+    {% with sv=plan.summary.savings %}
+    {% if sv.vs_naive or sv.vs_average_price %}
+    <div class="savings">
+      {% if sv.vs_naive %}<div><b>${{ sv.vs_naive.amount|floatformat:2 }}</b> saved vs. filling up only when needed ({{ sv.vs_naive.percent|floatformat:1 }}%)</div>{% endif %}
+      {% if sv.vs_average_price %}<div><b>${{ sv.per_gallon_vs_average|floatformat:3 }}/gal</b> below the ${{ sv.average_price_near_route|floatformat:3 }} average near the route</div>{% endif %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <ol id="stops">
+      {% for stop in plan.fuel_stops %}
+      <li data-index="{{ forloop.counter0 }}">
+        <span class="num">{{ stop.sequence }}</span><b>{{ stop.station.name }}</b>
+        <div class="meta">{{ stop.station.city }}, {{ stop.station.state }} · mile {{ stop.mile_marker }}</div>
+        <div class="meta">{{ stop.gallons_purchased }} gal × ${{ stop.price_per_gallon|floatformat:3 }} = <b>${{ stop.cost|floatformat:2 }}</b></div>
+      </li>
+      {% empty %}
+      <li>No fuel needed: the starting fuel covers the whole trip.</li>
+      {% endfor %}
+    </ol>
+  </aside>
+  <div id="map"></div>
+
+  {{ plan|json_script:"plan-data" }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script>
+    const plan = JSON.parse(document.getElementById("plan-data").textContent);
+    const map = L.map("map");
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, USGS, NGA, EPA, USDA, NPS",
+    }).addTo(map);
+
+    const line = L.geoJSON(plan.route.geometry, { style: { color: "#2563eb", weight: 5, opacity: 0.8 } }).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [30, 30] });
+
+    const endpoint = (loc, label, color) =>
+      L.circleMarker([loc.latitude, loc.longitude], { radius: 8, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1 })
+        .bindPopup(`<b>${label}</b><br>${loc.label}`).addTo(map);
+    endpoint(plan.start, "Start", "#16a34a");
+    endpoint(plan.finish, "Finish", "#dc2626");
+
+    const markers = plan.fuel_stops.map((stop) => {
+      const icon = L.divIcon({ className: "", html: `<div class="marker" style="width:24px;height:24px">${stop.sequence}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] });
+      return L.marker([stop.station.latitude, stop.station.longitude], { icon })
+        .bindPopup(`<b>${stop.sequence}. ${stop.station.name}</b><br>${stop.station.address}<br>${stop.station.city}, ${stop.station.state}<br>` +
+                   `Mile ${stop.mile_marker} · $${stop.price_per_gallon.toFixed(3)}/gal<br>Buy ${stop.gallons_purchased} gal → <b>$${stop.cost.toFixed(2)}</b>`)
+        .addTo(map);
+    });
+
+    document.querySelectorAll("#stops li[data-index]").forEach((li) =>
+      li.addEventListener("click", () => {
+        const m = markers[Number(li.dataset.index)];
+        map.setView(m.getLatLng(), 10);
+        m.openPopup();
+      })
+    );
+  </script>
+</body>
+</html>
