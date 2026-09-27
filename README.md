@@ -19,8 +19,8 @@ docker compose up --build
 ```
 
 This starts four services: `web` (gunicorn), `worker` (Celery), `db` (PostgreSQL) and `redis`
-(the job queue and shared route cache). On first start `web` runs migrations and imports the
-stations. Then open:
+(the job queue and shared route cache). On first start `web` runs migrations and imports the fuel
+price CSV into PostgreSQL (see [Fuel price data](#fuel-price-data)). Then open:
 
 | URL | What |
 | --- | --- |
@@ -45,6 +45,60 @@ pytest
 Without `REDIS_URL`, background jobs run inline in the web process, so `mode=async` works
 locally with no broker. To run a real worker locally, set `REDIS_URL=redis://localhost:6379/0`
 and start `celery -A config worker -Q io,cpu`.
+
+### Fuel price data
+
+The provided price sheet is committed at `data/fuel-prices.csv` and is the source of truth.
+`load_stations` imports it into the `FuelStation` table: it skips Canadian rows, merges duplicate
+OPIS ids (keeping the cheapest price), and geocodes each station from its city using
+`data/us_places.csv`.
+
+| | Docker (PostgreSQL) | Local (SQLite) |
+| --- | --- | --- |
+| First import | automatic on the first `docker compose up` | `python manage.py load_stations` |
+| Re-import or update prices | `docker compose exec web python manage.py load_stations` | `python manage.py load_stations` |
+| Import a different file | `... load_stations --csv path/to/prices.csv` | same |
+
+Expected output:
+
+```
+Loaded 6626 US stations from 8151 rows (6451 geocoded, 175 without coordinates, 620 non-US rows skipped).
+```
+
+The import replaces the whole table in one transaction, so it is safe to re-run. After a
+re-import, restart the app processes so each reloads its in-memory station index:
+`docker compose restart web worker` (or restart `runserver`).
+
+To check the data in PostgreSQL:
+
+```bash
+docker compose exec db psql -U fuel_planner -d fuel_planner \
+  -c "SELECT count(*) AS stations, count(latitude) AS geocoded FROM stations_fuelstation;"
+```
+
+Or browse it at http://localhost:8000/api/v1/stations/.
+
+### Tests and benchmark
+
+```bash
+# Local
+pytest                                                    # 164 tests
+python manage.py benchmark --repeat 5 --csv docs/benchmark.csv
+
+# Docker: the benchmark runs in the web container; copy its CSV out
+docker compose exec web python manage.py benchmark --repeat 5 --csv /tmp/benchmark.csv
+docker compose cp web:/tmp/benchmark.csv docs/benchmark.csv
+
+# Docker: tests (the image has no dev dependencies, so install them in a throwaway container)
+docker compose run --rm --no-deps --user root web \
+  sh -c "pip install -q --root-user-action=ignore -r requirements-dev.txt && pytest -p no:cacheprovider"
+```
+
+The benchmark compares every strategy on 8 US routes. It needs network access for the first run
+(one OSRM call per route, then cached), and it takes about 1–2 minutes. Results and analysis are
+in [Benchmark](#benchmark) below and in [docs/MATH.md](docs/MATH.md#8-benchmark). The benchmark's
+routing calls count towards `/api/v1/stats/`, so run `manage.py demo_reset` afterwards if you're
+about to demo.
 
 ## API
 
