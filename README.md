@@ -208,7 +208,7 @@ A paginated list of the imported stations. Filters: `state`, `city`, `max_price`
 ### Demo
 
 [`docs/postman_collection.json`](docs/postman_collection.json) has every call above in demo
-order, and [`docs/DEMO.md`](docs/DEMO.md) is the 5-minute walkthrough script.
+order. Run `python manage.py demo_reset` first so the routing stats start from zero.
 
 ## How it works
 

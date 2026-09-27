@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Fuel Route Planner",
-    "description": "Demo collection for the Fuel Route Planner API. Run the folders in order; see docs/DEMO.md.\n\nReset first: `docker compose exec web python manage.py demo_reset`.",
+    "description": "Demo collection for the Fuel Route Planner API. Run the folders in order.\n\nReset first: `docker compose exec web python manage.py demo_reset`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

@@ -6,3 +6,6 @@ db.sqlite3
 staticfiles/
 .env
 .playwright-mcp/
+
+# Personal demo notes
+docs/DEMO.md
