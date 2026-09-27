@@ -30,7 +30,7 @@ price CSV into PostgreSQL (see [Fuel price data](#fuel-price-data)). Then open:
 
 ### Local (SQLite)
 
-Requires Python 3.12+ (Django 6.1).
+Requires Python 3.14+ (see `pyproject.toml`).
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -211,6 +211,9 @@ A paginated list of the imported stations. Filters: `state`, `city`, `max_price`
 order. Run `python manage.py demo_reset` first so the routing stats start from zero.
 
 ## How it works
+
+Services, tech stack, code layout and data model, with diagrams, are in
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ```
 "City, ST" ──► offline geocoder ──► OSRM (1 call, cached) ──► stations within N miles ──► optimiser ──► response
