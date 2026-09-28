@@ -109,23 +109,7 @@ class RoutePlanView(APIView):
         ],
     )
     def post(self, request: Request) -> Response:
-        return self._handle(request, request.data)
-
-    @extend_schema(
-        summary="Plan a route (query parameters)",
-        description="Same as POST, with inputs as query parameters for quick testing in a browser.",
-        parameters=[RoutePlanRequestSerializer],
-        responses={
-            200: RoutePlanResponseSerializer,
-            202: OpenApiResponse(RoutePlanJobSerializer, description="Job accepted (mode=async)."),
-            **ERROR_RESPONSES,
-        },
-    )
-    def get(self, request: Request) -> Response:
-        return self._handle(request, request.query_params)
-
-    def _handle(self, request: Request, params) -> Response:
-        data = _validated(params)
+        data = _validated(request.data)
         if data.pop("mode") == "async":
             return self._submit(request, data)
         payload, error = _plan_sync(request, data)

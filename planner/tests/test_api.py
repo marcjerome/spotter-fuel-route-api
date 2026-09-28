@@ -96,10 +96,15 @@ class TestRoutePlanAPI:
         # Average of the 4 on-route stations: (3.50 + 2.90 + 3.90 + 3.20) / 4
         assert savings["average_price_near_route"] == pytest.approx(3.375)
 
-    def test_get_with_query_params_and_coordinates(self, api, stations, routing_calls):
-        response = api.get(self.url, {"start": f"{START[0]},{START[1]}", "finish": "Nashville, TN"})
+    def test_coordinates_as_input(self, api, stations, routing_calls):
+        response = api.post(self.url, {"start": f"{START[0]},{START[1]}", "finish": "Nashville, TN"}, format="json")
         assert response.status_code == 200, response.content
         assert response.json()["start"]["latitude"] == START[0]
+
+    def test_get_is_not_allowed(self, api, stations, routing_calls):
+        response = api.get(self.url, {"start": "Oklahoma City, OK", "finish": "Nashville, TN"})
+        assert response.status_code == 405
+        assert routing_calls == []
 
     @pytest.mark.parametrize("strategy", ["greedy", "lp", "milp", "naive"])
     def test_every_strategy(self, api, stations, routing_calls, strategy):

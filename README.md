@@ -125,9 +125,6 @@ about to demo.
 | `stop_penalty` | `25` | `$` per stop, used only by `milp`. |
 | `mode` | `sync` | `async` queues the plan for a background worker (see [Background jobs](#background-jobs)). |
 
-`GET /api/v1/route-plan/?start=Dallas,%20TX&finish=Chicago,%20IL` accepts the same fields as
-query parameters.
-
 Response (trimmed):
 
 ```json
